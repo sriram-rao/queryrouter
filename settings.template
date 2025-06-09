@@ -1,0 +1,84 @@
+api_key = ""
+
+claude_api_key = ""
+
+tables = [
+    "customer",
+    "lineitem",
+    "nation",
+    "orders",
+    "part",
+    "partsupp",
+    "region",
+    "supplier",
+]
+
+
+queries = [
+    """
+SELECT COUNT(*) FROM iceberg.tpch.lineitem
+""",
+    """SELECT
+    l_returnflag,
+    l_linestatus,
+    SUM(l_quantity) AS sum_qty,
+    SUM(l_extendedprice) AS sum_base_price
+FROM
+    iceberg.tpch.lineitem
+WHERE
+    l_shipdate <= DATE '1998-12-01'
+GROUP BY
+    l_returnflag, l_linestatus
+""",
+    """SELECT
+    o_orderpriority,
+    count(*) AS order_count
+FROM
+    iceberg.tpch.orders
+WHERE
+    o_orderdate >= CAST('1993-07-01' AS date)
+    AND o_orderdate < CAST('1993-10-01' AS date)
+    AND EXISTS (
+        SELECT
+            *
+        FROM
+            iceberg.tpch.lineitem
+        WHERE
+            l_orderkey = o_orderkey
+            AND l_commitdate < l_receiptdate)
+GROUP BY
+    o_orderpriority
+ORDER BY
+    o_orderpriority""",
+    """
+SELECT
+    SUM(l_extendedprice * l_discount) AS revenue
+FROM
+    iceberg.tpch.lineitem
+WHERE
+    l_shipdate >= DATE '1994-01-01'
+    AND l_shipdate < DATE '1995-01-01'
+    AND l_discount BETWEEN 0.05 AND 0.07
+    AND l_quantity < 24
+  """,
+    """SELECT
+    ps_partkey,
+    SUM(ps_supplycost * ps_availqty) AS value
+FROM
+    iceberg.tpch.partsupp
+    JOIN iceberg.tpch.supplier ON ps_suppkey = s_suppkey
+    JOIN iceberg.tpch.nation ON s_nationkey = n_nationkey
+WHERE
+    n_name = 'GERMANY'
+GROUP BY
+    ps_partkey
+HAVING
+    SUM(ps_supplycost * ps_availqty) > (
+        SELECT SUM(ps_supplycost * ps_availqty) * 0.0001
+        FROM partsupp
+        JOIN supplier ON ps_suppkey = s_suppkey
+        JOIN nation ON s_nationkey = n_nationkey
+        WHERE n_name = 'GERMANY'
+    )
+""",
+]

@@ -43,10 +43,10 @@ def run_experiment(
     delimiter: str = COMMA,
     output_path: str = "./debug/",
 ) -> None:
+    file_path = Path(output_path) / f"measures_{get_time_string()}.csv"
+    file_path.parent.mkdir(parents=True, exist_ok=True)
     for i in range(0, attempts):
         result = compare(config)
-        file_path = Path(output_path) / f"measures_{get_time_string()}.csv"
-        file_path.parent.mkdir(parents=True, exist_ok=True)
         print(result)
         with file_path.open("a+") as file:
             lines = [

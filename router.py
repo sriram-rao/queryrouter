@@ -1,13 +1,15 @@
 """Query router system"""
 
 import experiment
-from store import DuckDbConnector, TrinoConnector
+import resolver
+import settings
+from store import DUCKDB, TRINO, DuckDbConnector, TrinoConnector
 
 config = [
     {
         "name": DuckDbConnector.name,
         "store": DuckDbConnector({"data_file": "tpch.duckdb"}),
-        "queries": ["show tables", "select * from customer limit 5"],
+        "queries": settings.queries,
     },
     {
         "name": TrinoConnector.name,
@@ -20,10 +22,7 @@ config = [
                 "schema": "tpch",
             }
         ),
-        "queries": [
-            "show tables",
-            "select * from iceberg.tpch.customer limit 5",
-        ],
+        "queries": settings.queries,
     },
 ]
 
@@ -56,5 +55,27 @@ def store_compare():
     print(result)
 
 
-if __name__ == "__main__":
+def resolve_route(query: str):
+    metadata_connector = DuckDbConnector({"data_file": "tpch.duckdb"})
+    metadata_connector.connect()
+    tables = metadata_connector.get_tables(query)
+    schemata: dict[str, dict[str, str]] = {}
+    for table in tables:
+        schemata[table] = metadata_connector.get_schema(query)
+    row_counts = {table: metadata_connector.get_size(table) for table in tables}
+    route_picker = resolver.LlmSelector(
+        {DUCKDB, TRINO},
+        {"api_key": settings.claude_api_key},
+    )
+    metadata = {"schemata": schemata, "row_counts": row_counts}
+    print(f"Route picked: {route_picker.select(query, metadata)}")
+
+
+def start_experiment():
     experiment.run_experiment(config)
+
+
+if __name__ == "__main__":
+    # experiment.run_experiment(config)
+    # resolve_route(settings.queries[4])
+    start_experiment()

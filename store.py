@@ -3,10 +3,13 @@
 from typing import Any, override
 
 import duckdb
+import pandas as pd
 from trino.dbapi import Connection, Cursor, connect
 
-DUCKDB = "DuckDB"
-TRINO = "Trino"
+import settings
+
+DUCKDB = "duckdb"
+TRINO = "trino"
 
 
 class StoreConnector:
@@ -67,7 +70,28 @@ class DuckDbConnector(StoreConnector):
 
     @override
     def run_query(self, query: str) -> Any:
-        return self.connection.sql(query)
+        response = self.connection.sql(query.replace("iceberg.tpch.", ""))
+        print(response)
+        return response
+
+    def get_tables(self, query: str) -> list[str]:
+        query = query.lower()
+        return [name for name in settings.tables if name.lower() in query]
+
+    def get_size(self, table: str) -> int:
+        count: str = (
+            self.run_query(f"SELECT COUNT(*) FROM {table}")
+            .to_df()
+            .iloc[0]["count_star()"]
+        )
+        return int(count)
+
+    def get_schema(self, table: str) -> dict[str, str]:
+        response: dict[str, str] = (
+            self.run_query(f"DESCRIBE {table}").fetchdf().to_dict()
+        )
+        return response
 
     def __del__(self):
-        self.connection.close()
+        if self.connection:
+            self.connection.close()
