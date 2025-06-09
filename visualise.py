@@ -1,31 +1,74 @@
+from typing import Any
+
+import matplotlib.pyplot as plt
 import pandas as pd
+import seaborn as sns
 from pandas.core.api import DataFrame
+
+from experiment import get_time_string
 
 
 def load_measures(file_path: str):
     return pd.read_csv(file_path)
 
 
-def find_mean(measures: pd.DataFrame):
-    summary = measures.drop("attempt", axis=1).groupby("store").aggregate("mean")
-    print(summary)
+def find_mean(measures: pd.DataFrame) -> DataFrame:
+    summary = (
+        measures.drop("attempt", axis=1)
+        .groupby("store", as_index=False)
+        .aggregate("mean")
+    )
+    summary = summary.melt(id_vars="store", var_name="query", value_name="time")
+    print(f"Means:\n{summary}")
     return summary
 
 
-def get_comparison_counts(measures: DataFrame):
-    print(f"Measures: {measures}")
-    counts = measures.transpose()
-    print(f"After transpose: {counts}")
-    print(f"Columns in counts: {counts.columns}")
-    counts["duckdb_better"] = 0 if counts["duckdb"] > counts["trino"] else 1
-    counts["trino_better"] = 0 if counts["duckdb"] < counts["trino"] else 1
-    print(f"Counts: {counts}")
-    counts = counts.aggregate("sum")[["duckdb_better", "trino_better"]]
-    print(f"Counts after agg: {counts}")
-    return counts
+def get_comparison_counts(measures: DataFrame) -> dict[str, Any]:
+    print(f"Measures:\n{measures}")
+    measures_pivot = measures.melt(
+        id_vars=["attempt", "store"], var_name="query", value_name="time"
+    )
+    comparison = measures_pivot.pivot(
+        index=["attempt", "query"], columns="store", values="time"
+    )
+    duckdb_better = comparison[comparison["duckdb"] < comparison["trino"]].count()[
+        "duckdb"
+    ]
+    # print(f"Duck: {duckdb_better}")
+    total = comparison.count()["duckdb"]
+    # print(f"Counts after agg:\n{measures_pivot}")
+    print(
+        f"duckdb_better: {duckdb_better}\ntrino_better: {total - duckdb_better}\ntotal: {total}"
+    )
+    return {
+        "pivot": measures_pivot,
+        "duckdb": duckdb_better,
+        "trino": total - duckdb_better,
+        "total": total,
+    }
+
+
+def scatter(data: DataFrame, path: str = "debug/charts"):
+    # print(data)
+    sns.relplot(data=data, x="query", y="time", hue="store")
+    plt.savefig(f"{path}/scatter_{get_time_string()}.pdf")
+    plt.show()
+
+
+def bar(data: DataFrame, path: str = "debug/charts"):
+    sns.barplot(data=data, x="query", y="time", hue="store")
+    plt.savefig(f"{path}/bar_{get_time_string()}.pdf")
+    plt.show()
+
+
+def pie(data: DataFrame, path: str = "debug/charts"):
+    pass
 
 
 if __name__ == "__main__":
     measures = load_measures("./debug/measures_2025-06-09_11-32.csv")
     averages = find_mean(measures)
-    counts = get_comparison_counts(measures)
+    # counts = get_comparison_counts(measures)
+    sns.set_theme()
+    # scatter(counts["pivot"])
+    bar(averages)
