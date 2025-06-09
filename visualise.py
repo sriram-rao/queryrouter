@@ -3,6 +3,7 @@ from typing import Any
 import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
+from matplotlib.axes import Axes
 from pandas.core.api import DataFrame
 
 from experiment import get_time_string
@@ -50,25 +51,31 @@ def get_comparison_counts(measures: DataFrame) -> dict[str, Any]:
 
 def scatter(data: DataFrame, path: str = "debug/charts"):
     # print(data)
-    sns.relplot(data=data, x="query", y="time", hue="store")
-    plt.savefig(f"{path}/scatter_{get_time_string()}.pdf")
+    grid = sns.relplot(data=data, x="query", y="time", hue="store")
+    grid.set_axis_labels(x_var="Query", y_var="Time Taken")
+    grid.savefig(f"./debug/charts/scatter_{get_time_string()}.pdf", dpi=300)
     plt.show()
 
 
 def bar(data: DataFrame, path: str = "debug/charts"):
-    sns.barplot(data=data, x="query", y="time", hue="store")
-    plt.savefig(f"{path}/bar_{get_time_string()}.pdf")
+    format_plot(
+        sns.barplot(data=data, x="query", y="time", hue="store"),
+        x="Query",
+        y="Avg. Time Taken",
+        file="bar",
+    )
+
+
+def format_plot(ax: Axes, x: str, y: str, file: str, path: str = "debug/charts/"):
+    ax.set(xlabel=x, ylabel=y)
+    plt.savefig(f"{path}/{file}_{get_time_string()}.pdf", dpi=300)
     plt.show()
-
-
-def pie(data: DataFrame, path: str = "debug/charts"):
-    pass
 
 
 if __name__ == "__main__":
     measures = load_measures("./debug/measures_2025-06-09_11-32.csv")
     averages = find_mean(measures)
-    # counts = get_comparison_counts(measures)
+    counts = get_comparison_counts(measures)
     sns.set_theme()
-    # scatter(counts["pivot"])
+    scatter(counts["pivot"])
     bar(averages)
