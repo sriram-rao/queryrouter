@@ -3,7 +3,10 @@
 import experiment
 import resolver
 import settings
-from store import DUCKDB, TRINO, DuckDbConnector, TrinoConnector
+from store.athena import AthenaConnector
+from store.connector import DUCKDB, TRINO
+from store.duckdb import DuckDbConnector
+from store.trino import TrinoConnector
 
 config = [
     {
@@ -20,6 +23,17 @@ config = [
                 "user": "ec2-user",
                 "catalog": "iceberg",
                 "schema": "tpch",
+            }
+        ),
+        "queries": settings.queries,
+    },
+    {
+        "name": AthenaConnector.name,
+        "store": AthenaConnector(
+            {
+                "aws_access_id": settings.Keys.aws_access_id,
+                "aws_secret_key": settings.Keys.aws_secret_key,
+                "aws_region": settings.Keys.aws_region,
             }
         ),
         "queries": settings.queries,
@@ -50,6 +64,20 @@ def test_trino():
     print(result)
 
 
+def test_athena():
+    result = (
+        AthenaConnector(
+            {
+                "aws_access_id": settings.Keys.aws_access_id,
+                "aws_secret_key": settings.Keys.aws_secret_key,
+                "aws_region": settings.Keys.aws_region,
+            }
+        )
+        .connect()
+        .run_query("SELECT COUNT(*) FROM iceberg.tpch.lineitem")
+    )
+
+
 def store_compare():
     result = experiment.compare(config)
     print(result)
@@ -65,14 +93,14 @@ def resolve_route(query: str):
     row_counts = {table: metadata_connector.get_size(table) for table in tables}
     route_picker = resolver.LlmSelector(
         {DUCKDB, TRINO},
-        {"api_key": settings.claude_api_key},
+        {"api_key": settings.Keys.claude_api_key},
     )
     metadata = {"schemata": schemata, "row_counts": row_counts}
     print(f"Route picked: {route_picker.select(query, metadata)}")
 
 
 def start_experiment():
-    experiment.run_experiment(config)
+    experiment.run_experiment(config[-1:])
 
 
 if __name__ == "__main__":

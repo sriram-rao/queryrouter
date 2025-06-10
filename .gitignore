@@ -2,3 +2,4 @@ __pycache__/
 debug/
 *.duckdb
 settings.py
+.DS_Store

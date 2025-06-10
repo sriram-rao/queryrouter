@@ -7,6 +7,7 @@ from matplotlib.axes import Axes
 from pandas.core.api import DataFrame
 
 from experiment import get_time_string
+from store import DUCKDB
 
 
 def load_measures(file_path: str):
@@ -72,10 +73,43 @@ def format_plot(ax: Axes, x: str, y: str, file: str, path: str = "debug/charts/"
     plt.show()
 
 
+def f1_measure(prediction: DataFrame, truth: DataFrame, path: str = "debug/charts"):
+    prediction_data = prediction[["attempt", "store", "query"]].pivot(
+        index=["attempt", "query"], columns="store", values="time"
+    )
+    test_selection_data["selection"] = test_selection_data.apply(
+        lambda row: 1 if row.store == DUCKDB else 0, axis=1
+    )
+    print(test_selection_data)
+    test_selection_data["selection"] = test_selection_data.apply(
+        lambda row: 1 if row["selection"] > 2 else 0, axis=1
+    )
+    test_data = test_selection_data[["selection"]].to_numpy()
+    print(f"True:\n{true}")
+    true_data = (
+        true[["query", "store", "responsetime"]]
+        .groupby(["query", "store"], as_index=False)
+        .aggregate("mean")
+        .pivot(index=["query"], columns="store", values="responsetime")
+    )
+    print(f"True data:\n{true_data}")
+    true_data["selection"] = true_data.apply(
+        lambda row: 1 if row.duckdb > row.trino else 0, axis=1
+    )
+    print(f"True data:\n{true_data}")
+    true_data = true_data.sort_values(by="query")
+    print(test_data)
+    print(true_data)
+    print("Done?")
+
+
 if __name__ == "__main__":
     measures = load_measures("./debug/measures_2025-06-09_11-32.csv")
-    averages = find_mean(measures)
+    # averages = find_mean(measures)
     counts = get_comparison_counts(measures)
     sns.set_theme()
-    scatter(counts["pivot"])
-    bar(averages)
+    # scatter(counts["pivot"])
+    # bar(averages)
+    f1_measure(
+        load_measures("./debug/selections_2025-06-09_22-25.csv"), counts["pivot"]
+    )

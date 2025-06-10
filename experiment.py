@@ -5,23 +5,23 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-import store
 from resolver import LlmSelector, RuleChecker
+from store.connector import ATHENA, DUCKDB, TRINO, StoreConnector
 
-store_types = [store.DUCKDB, store.TRINO]
+store_types = [DUCKDB, TRINO, ATHENA]
 resolver_types = [LlmSelector, RuleChecker]
 COMMA = ","
 NEWLINE = "\n"
 
 
-def get_run_time(query: str, store: store.StoreConnector) -> float:
+def get_run_time(query: str, store: StoreConnector) -> float:
     _ = store.connect()
     start: float = time.time()
     print(store.run_query(query))
     return time.time() - start
 
 
-def get_run_times(queries: list[str], repo: store.StoreConnector) -> list[float]:
+def get_run_times(queries: list[str], repo: StoreConnector) -> list[float]:
     times = []
     for query in queries:
         times.append(get_run_time(query, repo))
