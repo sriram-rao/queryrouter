@@ -1,6 +1,14 @@
-api_key = ""
+class Keys:
+    api_key: str = (
+        ""
+    )
+    claude_api_key: str = (
+        ""
+    )
+    aws_access_id: str = ""
+    aws_secret_key: str = ""
+    aws_region: str = ""
 
-claude_api_key = ""
 
 tables = [
     "customer",

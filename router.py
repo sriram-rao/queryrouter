@@ -1,5 +1,7 @@
 """Query router system"""
 
+from pathlib import Path
+
 import experiment
 import resolver
 import settings
@@ -97,7 +99,31 @@ def resolve_route(query: str):
         {"api_key": settings.Keys.claude_api_key},
     )
     metadata = {"schemata": schemata, "row_counts": row_counts}
-    print(f"Route picked: {route_picker.select(query, metadata)}")
+    choice = route_picker.select(query, metadata)
+    print(f"Route picked: {choice}")
+    return choice
+
+
+def get_predictions(attempts: int = 2, path: str = "./debug/"):
+    file_path = Path(path).resolve() / f"selections_{experiment.get_time_string()}.csv"
+    file_path.parent.mkdir(exist_ok=True)
+    print(f"Number of queries: {len(settings.queries)}")
+    for i in range(0, attempts):
+        print(f"Attempt {i}")
+        attempt_result = []
+        for index, query in enumerate(settings.queries):
+            start = time.time()
+            try:
+                choice = resolve_route(query)
+                duration = time.time() - start
+            except:
+                print(f"Attempt: {i}, Query: {index}, received exception")
+                duration = 2000
+            attempt_result.append([str(i), str(index), str(choice), str(duration)])
+        print(f"Writing attempt {i} to file: {attempt_result}")
+        lines = [",".join(result) for result in attempt_result]
+        with file_path.open("a+") as file:
+            file.write("\n".join(lines) + "\n")
 
 
 def start_experiment():
