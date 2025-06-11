@@ -3,3 +3,4 @@ debug/
 *.duckdb
 settings.py
 .DS_Store
+*venv/
