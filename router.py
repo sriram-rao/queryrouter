@@ -76,6 +76,7 @@ def test_athena():
         .connect()
         .run_query("SELECT COUNT(*) FROM iceberg.tpch.lineitem")
     )
+    print(result)
 
 
 def store_compare():

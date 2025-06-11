@@ -17,8 +17,10 @@ NEWLINE = "\n"
 def get_run_time(query: str, store: StoreConnector) -> float:
     _ = store.connect()
     start: float = time.time()
-    print(store.run_query(query))
-    return time.time() - start
+    result = store.run_query(query)
+    print(result)
+    duration = time.time() - start
+    return result["Statistics"]["TotalExecutionTimeInMillis"] / 1000
 
 
 def get_run_times(queries: list[str], repo: StoreConnector) -> list[float]:

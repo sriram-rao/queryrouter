@@ -50,7 +50,7 @@ class AthenaConnector(StoreConnector):
         completed = False
         while not completed:
             # poll
-            time.sleep(1)  # in seconds
+            time.sleep(5)  # in seconds
             execution = self.connection.get_query_execution(QueryExecutionId=query_id)
             status = execution["QueryExecution"]["Status"]["State"]
             print(f"Status: {status}")
